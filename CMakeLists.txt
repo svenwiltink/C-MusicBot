@@ -7,8 +7,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # set the project name
 project(MusicBot)
 
+file(GLOB MusicBot_SRC
+    "*.h"
+    "*.c"
+)
+
 # add the executable
-add_executable(MusicBot main.c)
+add_executable(MusicBot ${MusicBot_SRC})
 
 find_library(CURL_LIB curl)
 target_link_libraries(MusicBot "${CURL_LIB}")
+
+include_directories(mattermost)
+add_subdirectory(mattermost)
+target_link_libraries(MusicBot mattermost)
