@@ -1,13 +1,18 @@
 #ifndef MATTERMOST_H_
 #define MATTERMOST_H_ 
 
-typedef struct ApiOptions {
+struct MatterMostApiOptions {
     char *endpoint;
     char *token;
-} MatterMostApiOptions;
+};
 
-MatterMostApiOptions mattermost_get_api_options();
+struct MatterMostUser {
+    char *id;
+    char *username;
+    char *nickname;
+};
 
-int callCurl();
+
+struct MatterMostUser mattermost_get_user_self(struct MatterMostApiOptions options);
 
 #endif
