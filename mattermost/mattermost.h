@@ -8,4 +8,6 @@ typedef struct ApiOptions {
 
 MatterMostApiOptions mattermost_get_api_options();
 
+int callCurl();
+
 #endif

@@ -5,4 +5,7 @@ file(GLOB Mattermost_SRC
     "*.c"
 )
 
+find_library(CURL_LIB curl)
+target_link_libraries(MusicBot "${CURL_LIB}")
+
 add_library(mattermost ${Mattermost_SRC})

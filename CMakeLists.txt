@@ -15,9 +15,6 @@ file(GLOB MusicBot_SRC
 # add the executable
 add_executable(MusicBot ${MusicBot_SRC})
 
-find_library(CURL_LIB curl)
-target_link_libraries(MusicBot "${CURL_LIB}")
-
 include_directories(mattermost)
 add_subdirectory(mattermost)
 target_link_libraries(MusicBot mattermost)
