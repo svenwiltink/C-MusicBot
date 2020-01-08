@@ -12,7 +12,6 @@ struct MatterMostUser {
     char *nickname;
 };
 
-
-struct MatterMostUser mattermost_get_user_self(struct MatterMostApiOptions options);
+int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOptions options);
 
 #endif

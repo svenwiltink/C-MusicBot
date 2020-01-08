@@ -3,16 +3,19 @@
 
 #include <mattermost.h>
 
-int main() {
+int main()
+{
 
   char *token = getenv("MusicBot_Mattermost_Token");
-  if (token == NULL) {
+  if (token == NULL)
+  {
     printf("MusicBot_Mattermost_Token env variable not set");
     return 1;
   }
 
   char *endpoint = getenv("MusicBot_Mattermost_Endpoint");
-  if (endpoint == NULL) {
+  if (endpoint == NULL)
+  {
     printf("MusicBot_Mattermost_Endpoint env variable not set");
     return 1;
   }
@@ -20,9 +23,19 @@ int main() {
   printf("Found mattermost token %s", token);
 
   struct MatterMostApiOptions apiOptions = {
-    endpoint,
-    token
-  };
+      endpoint,
+      token};
 
-  mattermost_get_user_self(apiOptions);
+  struct MatterMostUser *user = malloc(sizeof(struct MatterMostUser));
+
+  mattermost_get_user_self(user, apiOptions);
+
+  printf("ID: %s\n", user->id);
+  printf("Username: %s\n", user->username);
+  printf("Nickname: %s\n", user->nickname);
+
+  free(user->id);
+  free(user->nickname);
+  free(user->username);
+  free(user);
 }
