@@ -84,7 +84,7 @@ void mattermost_connect(struct MatterMostSession *session, struct MatterMostApiO
 
 	struct lws_client_connect_info ccinfo = {0};
 	ccinfo.context = session->lws_context;
-	ccinfo.address = "chat.transip.us";
+	ccinfo.address = session->apiOptions.endpoint;
 	ccinfo.port = 443;
 	ccinfo.path = "/api/v4/websocket";
 	ccinfo.host = ccinfo.address;
