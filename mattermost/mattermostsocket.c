@@ -28,7 +28,10 @@ static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason
 		};
 		
 		struct MatterMostSession *session = (MatterMostSession *) user;
-		session->eventhandler(session, event);
+
+		if (session->eventhandler != NULL) {
+			session->eventhandler(session, event);
+		}
 		break;
 
 	case LWS_CALLBACK_CLIENT_WRITEABLE:
