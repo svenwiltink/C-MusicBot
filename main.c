@@ -3,6 +3,11 @@
 
 #include <mattermost.h>
 
+void DummyHandler(struct MatterMostSession *session, struct MatterMostEvent event)
+{
+  printf("session %s\ndata %s\n", session->name, event.data);
+}
+
 int main()
 {
 
@@ -28,7 +33,10 @@ int main()
 
   struct MatterMostUser *user = malloc(sizeof(struct MatterMostUser));
 
-  mattermost_get_user_self(user, apiOptions);
+  if (mattermost_get_user_self(user, apiOptions)) {
+    printf("something went wrong, whoops");
+    exit(1);
+  }
 
   printf("ID: %s\n", user->id);
   printf("Username: %s\n", user->username);
@@ -36,5 +44,28 @@ int main()
 
   mattermost_free_user(user);
 
-  mattermost_connect(apiOptions);
+  struct MatterMostSession session = {
+      "test1",
+      apiOptions,
+      NULL,
+      NULL,
+      DummyHandler};
+
+  mattermost_connect(&session, apiOptions);
+
+  time_t lastTime;
+  time_t newTime;
+  while (1)
+  {
+    lws_service(session.lws_context, 250);
+
+    time(&newTime);
+    if (newTime > lastTime)
+    {
+      lastTime = newTime;
+      lws_callback_on_writable(session.lws_websocket);
+    }
+  }
+
+  mattermost_session_free(&session);
 }

@@ -77,7 +77,8 @@ int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOp
     printf("ENDPOINT: %s\n", endpoint);
 
     curl_easy_setopt(curl_handle, CURLOPT_URL, endpoint);
-
+    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
+    curl_easy_setopt(curl_handle, CURLOPT_MAXREDIRS, 10);
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
@@ -89,19 +90,24 @@ int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOp
     if (res != CURLE_OK)
     {
         fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        status = 1;
+        goto end;
     }
     else
     {
+        long response_code;
+        curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+
+        if (response_code != 200)
+        {
+            fprintf(stderr, "received HTTP status code %d\n", response_code);
+            status = 1;
+            goto end;
+        }
+
         printf("%lu bytes retrieved\n", (unsigned long)chunk.size);
         printf("%s\n", chunk.memory);
     }
-
-    /* cleanup curl stuff */
-    curl_easy_cleanup(curl_handle);
-    curl_slist_free_all(headers);
-
-    free(tokenHeader);
-    free(endpoint);
 
     json_object *user_json = json_tokener_parse(chunk.memory);
 
@@ -142,10 +148,15 @@ int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOp
     strcpy(user->username, value);
 
 end:
-    if (json_object_put(user_json) != 1)
-    {
-        printf("unable to free JSON. PANIC");
-    }
+
+    /* cleanup curl stuff */
+    curl_easy_cleanup(curl_handle);
+    curl_slist_free_all(headers);
+
+    free(tokenHeader);
+    free(endpoint);
+
+    json_object_put(user_json);
     free(chunk.memory);
     return status;
 }
