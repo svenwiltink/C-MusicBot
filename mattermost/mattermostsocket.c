@@ -8,8 +8,13 @@
 
 static struct lws *web_socket = NULL;
 
+struct MatterMostSession {
+	char name[20];
+};
+
 static int mattermost_callback( struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len )
 {
+
 	switch( reason )
 	{
 		case LWS_CALLBACK_CLIENT_ESTABLISHED:
@@ -24,6 +29,8 @@ static int mattermost_callback( struct lws *wsi, enum lws_callback_reasons reaso
 
 		case LWS_CALLBACK_CLIENT_WRITEABLE:
 		{
+			struct MatterMostSession *sessionData = (struct MatterMostSession *) user;
+			printf(sessionData->name);
             printf("writeable bitches!\n");
 
             char *payload = "{ \"seq\": 1, \"action\": \"authentication_challenge\", \"data\": { \"token\": \"TOKEN\" } }";
@@ -53,7 +60,7 @@ static struct lws_protocols protocols[] =
 	{
 		"mattermost-protocol",
 		mattermost_callback,
-		0,
+		sizeof(struct MatterMostSession),
 		0,
 	},
 	{ NULL, NULL, 0, 0 } /* terminator */
@@ -73,6 +80,10 @@ void mattermost_connect(struct MatterMostApiOptions options)
 
 	struct lws_context *context = lws_create_context( &info );
 
+	struct MatterMostSession session = {
+		"lekkerman"
+	};
+
 	time_t old = 0;
 	while( 1 )
 	{
@@ -91,6 +102,7 @@ void mattermost_connect(struct MatterMostApiOptions options)
 			ccinfo.host = ccinfo.address;
 			ccinfo.origin = ccinfo.address;
 			ccinfo.protocol = protocols[0].name;
+			ccinfo.userdata = &session;
             ccinfo.ssl_connection = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4);
 			web_socket = lws_client_connect_via_info(&ccinfo);
 		}
