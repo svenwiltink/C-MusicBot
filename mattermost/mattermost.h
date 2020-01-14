@@ -14,4 +14,8 @@ struct MatterMostUser {
 
 int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOptions options);
 
+void mattermost_free_user(struct MatterMostUser *user);
+
+void mattermost_connect(struct MatterMostApiOptions options);
+
 #endif

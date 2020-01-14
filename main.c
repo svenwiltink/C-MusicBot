@@ -34,8 +34,7 @@ int main()
   printf("Username: %s\n", user->username);
   printf("Nickname: %s\n", user->nickname);
 
-  free(user->id);
-  free(user->nickname);
-  free(user->username);
-  free(user);
+  mattermost_free_user(user);
+
+  mattermost_connect(apiOptions);
 }

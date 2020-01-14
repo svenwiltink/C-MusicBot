@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include <curl/curl.h>
-#include <cjson/cJSON.h>
+#include <json-c/json.h>
 
 #include "mattermost.h"
 
@@ -48,6 +48,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 
 int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOptions options)
 {
+    int status = 0;
     CURL *curl_handle;
     CURLcode res;
 
@@ -83,10 +84,8 @@ int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOp
 
     curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
-    /* get it! */
     res = curl_easy_perform(curl_handle);
 
-    /* check for errors */
     if (res != CURLE_OK)
     {
         fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
@@ -104,53 +103,57 @@ int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOp
     free(tokenHeader);
     free(endpoint);
 
-    cJSON *user_json = cJSON_Parse(chunk.memory);
+    json_object *user_json = json_tokener_parse(chunk.memory);
 
-    if (user_json == NULL)
-    {
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL)
-        {
-            fprintf(stderr, "Error before: %s\n", error_ptr);
-        }
-        goto end;
-    }
+    json_object *field;
+    const char *value;
 
-    cJSON *field;
-
-
-    field = cJSON_GetObjectItemCaseSensitive(user_json, "id");
-    if (!cJSON_IsString(field) || field->valuestring == NULL)
+    if (!json_object_object_get_ex(user_json, "id", &field))
     {
         printf("id not found");
+        status = 1;
         goto end;
     }
 
-    user->id = malloc(sizeof(char) * strlen(field->valuestring) + 1);
-    strcpy(user->id, field->valuestring);
+    value = json_object_get_string(field);
+    user->id = malloc(sizeof(char) * strlen(value) + 1);
+    strcpy(user->id, value);
 
+    if (!json_object_object_get_ex(user_json, "nickname", &field))
+    {
+        printf("name not found");
+        status = 1;
+        goto end;
+    }
 
-    field = cJSON_GetObjectItemCaseSensitive(user_json, "username");
-    if (!cJSON_IsString(field) || field->valuestring == NULL)
+    value = json_object_get_string(field);
+    user->nickname = malloc(sizeof(char) * strlen(value) + 1);
+    strcpy(user->nickname, value);
+
+    if (!json_object_object_get_ex(user_json, "username", &field))
     {
         printf("username not found");
+        status = 1;
         goto end;
     }
 
-    user->username = malloc(sizeof(char) * strlen(field->valuestring) + 1);
-    strcpy(user->username, field->valuestring);
-
-    field = cJSON_GetObjectItemCaseSensitive(user_json, "nickname");
-    if (!cJSON_IsString(field) || field->valuestring == NULL)
-    {
-        printf("nickname not found");
-        goto end;
-    }
-
-    user->nickname = malloc(sizeof(char) * strlen(field->valuestring) + 1);
-    strcpy(user->nickname, field->valuestring);
+    value = json_object_get_string(field);
+    user->username = malloc(sizeof(char) * strlen(value) + 1);
+    strcpy(user->username, value);
 
 end:
-    cJSON_Delete(user_json);
+    if (json_object_put(user_json) != 1)
+    {
+        printf("unable to free JSON. PANIC");
+    }
     free(chunk.memory);
+    return status;
+}
+
+void mattermost_free_user(struct MatterMostUser *user)
+{
+    free(user->id);
+    free(user->nickname);
+    free(user->username);
+    free(user);
 }
