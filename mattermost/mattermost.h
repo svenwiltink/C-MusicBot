@@ -16,6 +16,16 @@ struct MatterMostUser
     char *nickname;
 };
 
+enum MatterMostSessionStates
+{
+    MATTERMOST_SESSION_CONNECTING,
+    MATTERMOST_SESSION_AUTHENTICATING,
+    MATTERMOST_SESSION_AUTHENTICATING_WAITING,
+    MATTERMOST_SESSION_AUTHENTICATION_FAILED,
+    MATTERMOST_SESSION_CONNECTED,
+    MATTERMOST_SESSION_DISCONNECTED
+};
+
 struct MatterMostSession;
 
 struct MatterMostEvent
@@ -27,11 +37,11 @@ typedef void (*MatterMostHandleEvent)(struct MatterMostSession *session, struct 
 
 typedef struct MatterMostSession
 {
-    char name[20];
     struct MatterMostApiOptions apiOptions;
+    MatterMostHandleEvent eventhandler;
+    enum MatterMostSessionStates state;
     struct lws_context *lws_context;
     struct lws *lws_websocket;
-    MatterMostHandleEvent eventhandler;
 } MatterMostSession;
 
 int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOptions options);
