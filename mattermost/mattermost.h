@@ -42,13 +42,20 @@ typedef struct MatterMostSession
     enum MatterMostSessionStates state;
     struct lws_context *lws_context;
     struct lws *lws_websocket;
+    time_t lastPing;
 } MatterMostSession;
 
 int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOptions options);
 
 void mattermost_free_user(struct MatterMostUser *user);
 
+void mattermost_init(struct MatterMostSession *session, struct MatterMostApiOptions apiOptions);
+
+void mattermost_set_eventhandler(struct MatterMostSession *session, MatterMostHandleEvent eventHandler);
+
 void mattermost_connect(struct MatterMostSession *session, struct MatterMostApiOptions options);
+
+void mattermost_service(struct MatterMostSession *session);
 
 void mattermost_session_free(struct MatterMostSession *session);
 

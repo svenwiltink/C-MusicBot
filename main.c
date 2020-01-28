@@ -45,14 +45,13 @@ int main()
 
   mattermost_free_user(user);
 
-  struct MatterMostSession session = {
-      apiOptions,
-      DummyHandler};
 
+  struct MatterMostSession session;
+  
+  mattermost_init(&session, apiOptions);
+  mattermost_set_eventhandler(&session, DummyHandler);
   mattermost_connect(&session, apiOptions);
 
-  time_t lastTime;
-  time_t newTime;
   while (1)
   {
     if (session.state == MATTERMOST_SESSION_DISCONNECTED || session.state == MATTERMOST_SESSION_AUTHENTICATION_FAILED) {
@@ -60,14 +59,7 @@ int main()
       break;
     }
 
-     lws_service(session.lws_context, 250);
-
-    time(&newTime);
-    if (newTime > lastTime)
-    {
-      lastTime = newTime;
-      lws_callback_on_writable(session.lws_websocket);
-    }
+    mattermost_service(&session);
   }
 
   mattermost_session_free(&session);

@@ -16,6 +16,9 @@ static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason
 	{
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
 		session->state = MATTERMOST_SESSION_AUTHENTICATING;
+		
+		// set callback so we can send our initial authentication message
+		lws_callback_on_writable(session->lws_websocket);
 		break;
 
 	case LWS_CALLBACK_CLIENT_RECEIVE:
@@ -121,6 +124,16 @@ static struct lws_protocols protocols[] =
 		{NULL, NULL, 0, 0} /* terminator */
 };
 
+void mattermost_init(struct MatterMostSession *session, struct MatterMostApiOptions apiOptions)
+{
+	session->apiOptions = apiOptions;
+}
+
+void mattermost_set_eventhandler(struct MatterMostSession *session, MatterMostHandleEvent eventHandler)
+{
+	session->eventhandler = eventHandler;
+}
+
 void mattermost_connect(struct MatterMostSession *session, struct MatterMostApiOptions options)
 {
 	struct lws_context_creation_info info;
@@ -149,6 +162,19 @@ void mattermost_connect(struct MatterMostSession *session, struct MatterMostApiO
 	ccinfo.ssl_connection = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4);
 
 	session->lws_websocket = lws_client_connect_via_info(&ccinfo);
+}
+
+void mattermost_service(struct MatterMostSession *session)
+{
+	lws_service(session->lws_context, 250);
+
+	time_t newTime;
+	time(&newTime);
+
+	if (newTime - session->lastPing > 10) {
+		printf("we should ping now\n");
+		lws_callback_on_writable(session->lws_websocket);
+	}
 }
 
 void mattermost_session_free(struct MatterMostSession *session)
