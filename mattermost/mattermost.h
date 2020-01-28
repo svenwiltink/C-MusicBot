@@ -35,21 +35,13 @@ struct MatterMostEvent
 
 typedef void (*MatterMostHandleEvent)(struct MatterMostSession *session, struct MatterMostEvent event);
 
-typedef struct MatterMostSession
-{
-    struct MatterMostApiOptions apiOptions;
-    MatterMostHandleEvent eventhandler;
-    enum MatterMostSessionStates state;
-    struct lws_context *lws_context;
-    struct lws *lws_websocket;
-    time_t lastPing;
-} MatterMostSession;
-
 int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOptions options);
 
 void mattermost_free_user(struct MatterMostUser *user);
 
-void mattermost_init(struct MatterMostSession *session, struct MatterMostApiOptions apiOptions);
+struct MatterMostSession *mattermost_init(struct MatterMostApiOptions apiOptions);
+
+int mattermost_get_state(struct MatterMostSession *session);
 
 void mattermost_set_eventhandler(struct MatterMostSession *session, MatterMostHandleEvent eventHandler);
 

@@ -46,21 +46,23 @@ int main()
   mattermost_free_user(user);
 
 
-  struct MatterMostSession session;
+  struct MatterMostSession *session;
   
-  mattermost_init(&session, apiOptions);
-  mattermost_set_eventhandler(&session, DummyHandler);
-  mattermost_connect(&session, apiOptions);
+  session = mattermost_init(apiOptions);
+  mattermost_set_eventhandler(session, DummyHandler);
+  mattermost_connect(session, apiOptions);
 
+  int state;
   while (1)
   {
-    if (session.state == MATTERMOST_SESSION_DISCONNECTED || session.state == MATTERMOST_SESSION_AUTHENTICATION_FAILED) {
-      printf("stoppin main loop, reached status %d\n", session.state);
+    state = mattermost_get_state(session);
+    if (state == MATTERMOST_SESSION_DISCONNECTED || state == MATTERMOST_SESSION_AUTHENTICATION_FAILED) {
+      printf("stoppin main loop, reached status %d\n", state);
       break;
     }
 
-    mattermost_service(&session);
+    mattermost_service(session);
   }
 
-  mattermost_session_free(&session);
+  mattermost_session_free(session);
 }

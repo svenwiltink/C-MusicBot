@@ -7,10 +7,20 @@
 
 #include "mattermost.h"
 
+struct MatterMostSession
+{
+    struct MatterMostApiOptions apiOptions;
+    MatterMostHandleEvent eventhandler;
+    enum MatterMostSessionStates state;
+    struct lws_context *lws_context;
+    struct lws *lws_websocket;
+    time_t lastPing;
+};
+
 static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
 {
 
-	struct MatterMostSession *session = (MatterMostSession *)user;
+	struct MatterMostSession *session = (struct MatterMostSession *)user;
 
 	switch (reason)
 	{
@@ -124,9 +134,16 @@ static struct lws_protocols protocols[] =
 		{NULL, NULL, 0, 0} /* terminator */
 };
 
-void mattermost_init(struct MatterMostSession *session, struct MatterMostApiOptions apiOptions)
+struct MatterMostSession *mattermost_init(struct MatterMostApiOptions apiOptions)
 {
+	struct MatterMostSession *session = calloc(1, sizeof(struct MatterMostSession));
 	session->apiOptions = apiOptions;
+	return session;
+}
+
+int mattermost_get_state(struct MatterMostSession *session)
+{
+	return session->state;
 }
 
 void mattermost_set_eventhandler(struct MatterMostSession *session, MatterMostHandleEvent eventHandler)
@@ -185,4 +202,5 @@ void mattermost_session_free(struct MatterMostSession *session)
 	}
 
 	session->lws_websocket = NULL;
+	free(session);
 }
