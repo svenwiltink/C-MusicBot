@@ -36,9 +36,7 @@ int main()
 
   printf("Found mattermost token %s", token);
 
-  struct MatterMostApiOptions apiOptions = {
-      endpoint,
-      token};
+  struct MatterMostApiOptions apiOptions = {endpoint, token};
 
   struct MatterMostUser *user = malloc(sizeof(struct MatterMostUser));
 

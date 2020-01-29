@@ -33,7 +33,8 @@ enum MatterMostEventType
     MATTERMOST_EVENT_TYPE_POSTED
 };
 
-enum MatterMostChannelType {
+enum MatterMostChannelType
+{
     MATTERMOST_CHANNEL_TYPE_DIRECT,
     MATTERMOST_CHANNEL_TYPE_CHANNEL
 };
@@ -44,13 +45,15 @@ struct MatterMostEvent
     void *data;
 };
 
-struct MatterMostChannel {
+struct MatterMostChannel
+{
     char *displayname;
     char *name;
     enum MatterMostChannelType type;
 };
 
-struct MatterMostEventPosted {
+struct MatterMostEventPosted
+{
     struct MatterMostUser user;
     struct MatterMostChannel channel;
 };

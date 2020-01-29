@@ -102,7 +102,7 @@ static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason
 			goto end;
 		}
 
-		json_object *eventData; 
+		json_object *eventData;
 		json_object_object_get_ex(event_json, "data", &eventData);
 
 		if (strcmp(eventTypeName, "posted") == 0)
