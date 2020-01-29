@@ -3,9 +3,18 @@
 
 #include <mattermost.h>
 
-void DummyHandler(struct MatterMostSession *session, struct MatterMostEvent event)
+void DummyHandler(struct MatterMostSession *session, enum MatterMostEventType eventType, void *event)
 {
-  printf("data %s\n", event.data);
+  switch (eventType)
+  {
+  case MATTERMOST_EVENT_TYPE_POSTED:
+  {
+    struct MatterMostEventPosted *post = (struct MatterMostEventPosted *)event;
+    printf("got a message in %s\n", post->channel.displayname);
+  }
+  default:
+    return;
+  }
 }
 
 int main()
@@ -45,9 +54,8 @@ int main()
 
   mattermost_free_user(user);
 
-
   struct MatterMostSession *session;
-  
+
   session = mattermost_init(apiOptions);
   mattermost_set_eventhandler(session, DummyHandler);
   mattermost_connect(session, apiOptions);
@@ -56,7 +64,8 @@ int main()
   while (1)
   {
     state = mattermost_get_state(session);
-    if (state == MATTERMOST_SESSION_DISCONNECTED || state == MATTERMOST_SESSION_AUTHENTICATION_FAILED) {
+    if (state == MATTERMOST_SESSION_DISCONNECTED || state == MATTERMOST_SESSION_AUTHENTICATION_FAILED)
+    {
       printf("stoppin main loop, reached status %d\n", state);
       break;
     }

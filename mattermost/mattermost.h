@@ -3,6 +3,8 @@
 
 #include <libwebsockets.h>
 
+struct MatterMostSession;
+
 struct MatterMostApiOptions
 {
     char *endpoint;
@@ -26,14 +28,34 @@ enum MatterMostSessionStates
     MATTERMOST_SESSION_DISCONNECTED
 };
 
-struct MatterMostSession;
+enum MatterMostEventType
+{
+    MATTERMOST_EVENT_TYPE_POSTED
+};
+
+enum MatterMostChannelType {
+    MATTERMOST_CHANNEL_TYPE_DIRECT,
+    MATTERMOST_CHANNEL_TYPE_CHANNEL
+};
 
 struct MatterMostEvent
 {
-    char *data;
+    enum MatterMostEventType type;
+    void *data;
 };
 
-typedef void (*MatterMostHandleEvent)(struct MatterMostSession *session, struct MatterMostEvent event);
+struct MatterMostChannel {
+    char *displayname;
+    char *name;
+    enum MatterMostChannelType type;
+};
+
+struct MatterMostEventPosted {
+    struct MatterMostUser user;
+    struct MatterMostChannel channel;
+};
+
+typedef void (*MatterMostHandleEvent)(struct MatterMostSession *session, enum MatterMostEventType eventType, void *event);
 
 int mattermost_get_user_self(struct MatterMostUser *user, struct MatterMostApiOptions options);
 

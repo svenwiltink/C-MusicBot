@@ -9,13 +9,30 @@
 
 struct MatterMostSession
 {
-    struct MatterMostApiOptions apiOptions;
-    MatterMostHandleEvent eventhandler;
-    enum MatterMostSessionStates state;
-    struct lws_context *lws_context;
-    struct lws *lws_websocket;
-    time_t lastPing;
+	struct MatterMostApiOptions apiOptions;
+	MatterMostHandleEvent eventhandler;
+	enum MatterMostSessionStates state;
+	struct lws_context *lws_context;
+	struct lws *lws_websocket;
+	time_t lastPing;
 };
+
+void mattermost_parse_channel(struct MatterMostChannel *channel, json_object *event_json)
+{
+	json_object *displayNameField;
+	const char *displayNameValue;
+
+	json_object_object_get_ex(event_json, "channel_display_name", &displayNameField);
+	displayNameValue = json_object_get_string(displayNameField);
+
+	channel->displayname = malloc(sizeof(char) * strlen(displayNameValue) + 1);
+	strcpy(channel->displayname, displayNameValue);
+};
+
+void mattermost_free_channel(struct MatterMostChannel channel)
+{
+	free(channel.displayname);
+}
 
 static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
 {
@@ -26,26 +43,24 @@ static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason
 	{
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
 		session->state = MATTERMOST_SESSION_AUTHENTICATING;
-		
+
 		// set callback so we can send our initial authentication message
 		lws_callback_on_writable(session->lws_websocket);
 		break;
 
 	case LWS_CALLBACK_CLIENT_RECEIVE:
 	{
-		struct MatterMostEvent event = {(char *)in};
+		json_object *event_json = json_tokener_parse((char *)in);
 
-		json_object *event_json = json_tokener_parse(event.data);
-
-		json_object *field;
-		const char *fieldValue;
+		json_object *eventTypeField;
+		const char *eventTypeName;
 
 		/**
 		 * We can either get a status response or an event.
 		 */
-		if (json_object_object_get_ex(event_json, "status", &field))
+		if (json_object_object_get_ex(event_json, "status", &eventTypeField))
 		{
-			fieldValue = json_object_get_string(field);
+			eventTypeName = json_object_get_string(eventTypeField);
 
 			json_object *seqField;
 			int32_t seqValue;
@@ -53,7 +68,7 @@ static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason
 			json_object_object_get_ex(event_json, "seq_reply", &seqField);
 			seqValue = json_object_get_int(seqField);
 
-			printf("got status event %s. status %s seq: %d\n", event.data, fieldValue, seqValue);
+			printf("got status event %s. status %s seq: %d\n", (char *)in, eventTypeName, seqValue);
 
 			if (seqValue != 1)
 			{
@@ -61,9 +76,9 @@ static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason
 				goto end;
 			}
 
-			if (strcmp(fieldValue, "OK") != 0)
+			if (strcmp(eventTypeName, "OK") != 0)
 			{
-				printf("authentication failed: %s\n", event.data);
+				printf("authentication failed: %s\n", (char *)in);
 				session->state = MATTERMOST_SESSION_AUTHENTICATION_FAILED;
 			}
 
@@ -72,18 +87,37 @@ static int mattermost_callback(struct lws *wsi, enum lws_callback_reasons reason
 			goto end;
 		}
 
-		if (!json_object_object_get_ex(event_json, "event", &field))
+		if (!json_object_object_get_ex(event_json, "event", &eventTypeField))
 		{
-			printf("got unknown reponse %s\n", event.data);
+			printf("got unknown reponse %s\n", (char *)in);
 			goto end;
 		}
 
-		fieldValue = json_object_get_string(field);
-		printf("got event type %s\n", fieldValue);
+		eventTypeName = json_object_get_string(eventTypeField);
+		printf("got event type %s\n", eventTypeName);
 
-		if (session->eventhandler != NULL)
+		if (session->eventhandler == NULL)
 		{
-			session->eventhandler(session, event);
+			printf("no eventhandler defined\n");
+			goto end;
+		}
+
+		json_object *eventData; 
+		json_object_object_get_ex(event_json, "data", &eventData);
+
+		if (strcmp(eventTypeName, "posted") == 0)
+		{
+			struct MatterMostEventPosted *event = malloc(sizeof(struct MatterMostEventPosted));
+			mattermost_parse_channel(&event->channel, eventData);
+
+			session->eventhandler(session, MATTERMOST_EVENT_TYPE_POSTED, event);
+
+			mattermost_free_channel(event->channel);
+			free(event);
+		}
+		else
+		{
+			printf("unsupported event %s\n", eventTypeName);
 		}
 
 	end:
@@ -188,9 +222,11 @@ void mattermost_service(struct MatterMostSession *session)
 	time_t newTime;
 	time(&newTime);
 
-	if (newTime - session->lastPing > 10) {
+	if (newTime - session->lastPing > 10)
+	{
 		printf("we should ping now\n");
 		lws_callback_on_writable(session->lws_websocket);
+		time(&session->lastPing);
 	}
 }
 
